@@ -3,6 +3,8 @@ name = "test-localnet"
 version = "0.1.0"
 edition = "2021"
 
+[workspace]
+
 [[bin]]
 name = "localnet"
 path = "src/main.rs"
