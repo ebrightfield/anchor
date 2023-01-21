@@ -1,3 +1,4 @@
+use std::io::Write;
 use anchor_lang::solana_program::account_info::AccountInfo;
 
 use anchor_lang::solana_program::program_pack::Pack;
@@ -443,7 +444,15 @@ impl anchor_lang::AccountDeserialize for TokenAccount {
     }
 }
 
-impl anchor_lang::AccountSerialize for TokenAccount {}
+impl anchor_lang::AccountSerialize for TokenAccount {
+    fn try_serialize<W: Write>(&self, _writer: &mut W) -> Result<()> {
+        let mut data = vec![0; spl_token::state::Account::get_packed_len()];
+        spl_token::state::Account::pack(
+            self.0, &mut data,
+        )?;
+        Ok(())
+    }
+}
 
 impl anchor_lang::Owner for TokenAccount {
     fn owner() -> Pubkey {
@@ -456,6 +465,12 @@ impl Deref for TokenAccount {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl From<spl_token::state::Account> for TokenAccount {
+    fn from(value: spl_token::state::Account) -> Self {
+        Self(value)
     }
 }
 
@@ -474,7 +489,15 @@ impl anchor_lang::AccountDeserialize for Mint {
     }
 }
 
-impl anchor_lang::AccountSerialize for Mint {}
+impl anchor_lang::AccountSerialize for Mint {
+    fn try_serialize<W: Write>(&self, _writer: &mut W) -> Result<()> {
+        let mut data = vec![0; spl_token::state::Mint::get_packed_len()];
+        spl_token::state::Mint::pack(
+            self.0, &mut data,
+        )?;
+        Ok(())
+    }
+}
 
 impl anchor_lang::Owner for Mint {
     fn owner() -> Pubkey {
@@ -487,6 +510,12 @@ impl Deref for Mint {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl From<spl_token::state::Mint> for Mint {
+    fn from(value: spl_token::state::Mint) -> Self {
+        Self(value)
     }
 }
 

@@ -2545,7 +2545,7 @@ fn validator_flags(
     Ok(flags)
 }
 
-fn stream_logs(config: &WithPath<Config>, rpc_url: &str) -> Result<Vec<std::process::Child>> {
+pub fn stream_logs(config: &WithPath<Config>, rpc_url: &str) -> Result<Vec<std::process::Child>> {
     let program_logs_dir = ".anchor/program-logs";
     if Path::new(program_logs_dir).exists() {
         fs::remove_dir_all(program_logs_dir)?;
@@ -2604,7 +2604,7 @@ pub struct IdlTestMetadata {
     address: String,
 }
 
-fn start_test_validator(
+pub fn start_test_validator(
     cfg: &Config,
     test_validator: &Option<TestValidator>,
     flags: Option<Vec<String>>,
@@ -2689,7 +2689,7 @@ fn start_test_validator(
 
 // Return the URL that solana-test-validator should be running on given the
 // configuration
-fn test_validator_rpc_url(test_validator: &Option<TestValidator>) -> String {
+pub fn test_validator_rpc_url(test_validator: &Option<TestValidator>) -> String {
     match test_validator {
         Some(TestValidator {
             validator: Some(validator),
@@ -2701,7 +2701,7 @@ fn test_validator_rpc_url(test_validator: &Option<TestValidator>) -> String {
 
 // Setup and return paths to the solana-test-validator ledger directory and log
 // files given the configuration
-fn test_validator_file_paths(test_validator: &Option<TestValidator>) -> (String, String) {
+pub fn test_validator_file_paths(test_validator: &Option<TestValidator>) -> (String, String) {
     let ledger_directory = match test_validator {
         Some(TestValidator {
             validator: Some(validator),
