@@ -86,6 +86,26 @@ impl LocalnetAccount {
         })
     }
 
+    /// There is no modification on this contructor, but also no deserialization.
+    /// This is useful for blindly cloning accounts without having access to
+    /// any type to which the data can deserialize.
+    pub fn new_from_cloned_unchecked(
+        address: &Pubkey,
+        client: &RpcClient,
+        name: String,
+    ) -> anyhow::Result<Self> {
+        let info = client.get_account(address)?;
+        Ok(Self {
+            address: address.clone(),
+            lamports: info.lamports,
+            name,
+            account_data: info.data,
+            owner: info.owner,
+            executable: info.executable,
+            rent_epoch: info.rent_epoch,
+        })
+    }
+
     pub fn set_lamports(mut self, balance: u64) -> Self {
         self.lamports = balance;
         self
