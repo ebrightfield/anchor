@@ -89,7 +89,7 @@ impl LocalnetAccount {
     /// There is no modification on this contructor, but also no deserialization.
     /// This is useful for blindly cloning accounts without having access to
     /// any type to which the data can deserialize.
-    pub fn new_from_cloned_unchecked(
+    pub fn new_from_clone_unchecked(
         address: &Pubkey,
         client: &RpcClient,
         name: String,
