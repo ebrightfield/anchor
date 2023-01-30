@@ -31,6 +31,7 @@ use anchor_lang::AccountSerialize;
 fn validator_flags(
     cfg: &WithPath<Config>,
     test_validator: &Option<TestValidator>,
+    skip_project_programs: bool,
 ) -> Result<Vec<String>> {
     let programs = cfg.programs.get(&Cluster::Localnet);
 
@@ -40,46 +41,48 @@ fn validator_flags(
     }
 
     let mut flags = Vec::new();
-    for mut program in cfg.read_all_programs()? {
-        let binary_path = program.binary_path().display().to_string();
+    if !skip_project_programs {
+        for mut program in cfg.read_all_programs()? {
+            let binary_path = program.binary_path().display().to_string();
 
-        // Use the [programs.cluster] override and fallback to the keypair
-        // files if no override is given.
-        let address: Pubkey = programs
-            .and_then(|m| m.get(&program.lib_name))
-            .map(|deployment| Ok(deployment.address))
-            .unwrap_or_else(|| program.pubkey())?;
+            // Use the [programs.cluster] override and fallback to the keypair
+            // files if no override is given.
+            let address: Pubkey = programs
+                .and_then(|m| m.get(&program.lib_name))
+                .map(|deployment| Ok(deployment.address))
+                .unwrap_or_else(|| program.pubkey())?;
 
-        flags.push("--bpf-program".to_string());
-        flags.push(address.clone().to_string());
-        flags.push(binary_path);
+            flags.push("--bpf-program".to_string());
+            flags.push(address.clone().to_string());
+            flags.push(binary_path);
 
-        if let Some(idl) = program.idl.as_mut() {
-            // Write the on-chain IDL account to a file and add it as an `--account` flag.
-            let idl_account_data = on_chain_idl_account_data(
-                &program.path.join("src/lib.rs").as_os_str().to_str().unwrap())?;
-            let header = IdlAccount {
+            if let Some(idl) = program.idl.as_mut() {
+                // Write the on-chain IDL account to a file and add it as an `--account` flag.
+                let idl_account_data = on_chain_idl_account_data(
+                    &program.path.join("src/lib.rs").as_os_str().to_str().unwrap())?;
+                let header = IdlAccount {
                     authority: cfg.wallet_kp()?.pubkey(),
                     data_len: idl_account_data.len().try_into().unwrap(),
                 };
-            let mut account_data = Vec::new();
-            header.try_serialize(&mut account_data).unwrap();
-            account_data.extend(idl_account_data);
-            let localnet_idl_act = LocalnetAccount::new_raw(
-                IdlAccount::address(&address),
-                program.lib_name + "-account.json",
-                account_data,
-            )
-                .set_owner(address.clone());
-            localnet_idl_act.write_to_validator_json_file("target/idl-account")?;
-            flags.push("--account".to_string());
-            flags.push(localnet_idl_act.address.to_string());
-            flags.push(("target/idl-account/".to_string() + &localnet_idl_act.name)
-                .as_str().to_string()
-            );
-            // Add program address to the IDL JSON file.
-            // This is used during shutdown to log transactions.
-            IdlTestMetadata { address: address.to_string() }.write_to_file(idl)?;
+                let mut account_data = Vec::new();
+                header.try_serialize(&mut account_data).unwrap();
+                account_data.extend(idl_account_data);
+                let localnet_idl_act = LocalnetAccount::new_raw(
+                    IdlAccount::address(&address),
+                    program.lib_name + "-account.json",
+                    account_data,
+                )
+                    .set_owner(address.clone());
+                localnet_idl_act.write_to_validator_json_file("target/idl-account")?;
+                flags.push("--account".to_string());
+                flags.push(localnet_idl_act.address.to_string());
+                flags.push(("target/idl-account/".to_string() + &localnet_idl_act.name)
+                    .as_str().to_string()
+                );
+                // Add program address to the IDL JSON file.
+                // This is used during shutdown to log transactions.
+                IdlTestMetadata { address: address.to_string() }.write_to_file(idl)?;
+            }
         }
     }
 
@@ -183,7 +186,7 @@ fn validator_flags(
 }
 
 
-pub fn localnet_from_test_config(test_config: TestConfig, flags: Vec<String>) -> Result<()> {
+pub fn localnet_from_test_config(test_config: TestConfig, flags: Vec<String>, skip_project_programs: bool) -> Result<()> {
     for (_, test_toml) in &*test_config {
         // Copy the test suite into the Anchor [Config].
         // Set the startup_wait to zero, since it's irrelevant when we aren't running tests.
@@ -205,7 +208,7 @@ pub fn localnet_from_test_config(test_config: TestConfig, flags: Vec<String>) ->
             anchor_cfg, PathBuf::from("./Anchor.toml"));
         // Gather the CLI flags
         let mut cfg_flags = validator_flags(
-            &with_path, &test_toml.test)?;
+            &with_path, &test_toml.test, skip_project_programs)?;
         cfg_flags.extend(flags);
         // Start the validator
         let mut validator_handle = start_test_validator(
@@ -240,20 +243,4 @@ pub fn localnet_from_test_config(test_config: TestConfig, flags: Vec<String>) ->
         return Ok(())
     }
     Ok(())
-}
-
-pub fn start_localnet_from_test_toml(test_toml_path: &str, flags: Vec<String>) -> Result<()> {
-    let path = PathBuf::from(test_toml_path);
-    if !path.exists() {
-        return Err(anyhow!("{} does not exist.", &test_toml_path));
-    }
-    if !path.is_file() {
-        return Err(anyhow!("{} is not a file.", &test_toml_path));
-    }
-    let test_config = TestConfig::discover(&path.parent().unwrap(), vec![])?;
-    if let Some(test_config) = test_config {
-        localnet_from_test_config(test_config, flags)?;
-        return Ok(());
-    }
-    Err(anyhow!("Failed to create a test configuration from {}", &test_toml_path))
 }

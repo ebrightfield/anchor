@@ -1,10 +1,9 @@
 use std::fs;
 use anyhow::anyhow;
 use anchor_cli::config::{_TestToml, _TestValidator, _Validator,
-                         AccountEntry, GenesisEntry, ScriptsConfig, TestConfig};
+                         AccountEntry, GenesisEntry, ScriptsConfig};
 use serde_json::json;
 use crate::localnet_account::LocalnetAccount;
-use crate::test_validator::localnet_from_test_config;
 
 
 /// Standard Anchor test command. The [TestTomlGenerator.test_file_glob] is appended
@@ -140,15 +139,6 @@ impl TestTomlGenerator {
         fs::write(&save_to, toml_str_output)
             .map_err(|e| anyhow!("Error writing to {}: {:?}", save_to, e))?;
         Ok(())
-    }
-
-    pub fn start_localnet(&self, flags: Vec<String>) -> anyhow::Result<()> {
-        let test_config = TestConfig::discover(&self.save_directory, vec![])?;
-        if let Some(test_config) = test_config {
-            localnet_from_test_config(test_config, flags)?;
-            return Ok(())
-        }
-        Err(anyhow!("Failed to create a test configuration from {}", &self.save_directory))
     }
 }
 

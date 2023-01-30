@@ -8,6 +8,8 @@ use crate::TestTomlGenerator;
 pub enum Subcommand {
     Build,
     FromTestConfig {
+        #[clap(long)]
+        skip_project_programs: bool,
         cfg: String,
         flags: Vec<String>,
     },
@@ -23,10 +25,10 @@ impl SolanaLocalnetCli {
     pub fn process(self, test_toml_generators: Vec<TestTomlGenerator>) -> anyhow::Result<()> {
         if let Some(subcommand) = self.command {
             match subcommand {
-                Subcommand::FromTestConfig { cfg, flags } => {
+                Subcommand::FromTestConfig { cfg, flags, skip_project_programs } => {
                     let test_config = TestConfig::discover(&cfg, vec![])?;
                     if let Some(test_config) = test_config {
-                        localnet_from_test_config(test_config, flags)?;
+                        localnet_from_test_config(test_config, flags, skip_project_programs)?;
                         return Ok(())
                     }
                     return Err(anyhow!(
