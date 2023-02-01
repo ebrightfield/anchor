@@ -177,9 +177,9 @@ impl LocalnetAccount {
 pub fn js_test_import(location: &str) -> String {
     //let mut location = &mut location.clone();
     let location = if !location.ends_with(".json") {
-        let (_, location) = location.split_at(location.len()-5);
         location.to_string()
     } else {
+        let (location, _) = location.split_at(location.len()-5);
         location.to_string()
     };
     let name = {
@@ -189,8 +189,6 @@ pub fn js_test_import(location: &str) -> String {
             None => location.to_string(),
         }
     };
-    // Cut off the ".json" part.
-    let (name, _) = name.split_at(name.len() - 5);
     // Turn it into "camelCase" ending in "Json", e.g. i_mint.json -> iMintJson.
     let name = name.to_string().to_camel_case();
     // Output an import statement
